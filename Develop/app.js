@@ -1,18 +1,116 @@
-const Manager = require("./lib/Manager");
-const Engineer = require("./lib/Engineer");
-const Intern = require("./lib/Intern");
-const inquirer = require("inquirer");
-const path = require("path");
-const fs = require("fs");
+(async function () {
+  const Manager = require("./lib/Manager");
+  const Engineer = require("./lib/Engineer");
+  const Intern = require("./lib/Intern");
+  const inquirer = require("inquirer");
+  const path = require("path");
+  const fs = require("fs");
 
-const OUTPUT_DIR = path.resolve(__dirname, "output");
-const outputPath = path.join(OUTPUT_DIR, "team.html");
+  const OUTPUT_DIR = path.resolve(__dirname, "output");
+  const outputPath = path.join(OUTPUT_DIR, "team.html");
 
-const render = require("./lib/htmlRenderer");
+  const render = require("./lib/htmlRenderer");
 
+  if (!fs.existsSync(OUTPUT_DIR)){
+    fs.mkdirSync(OUTPUT_DIR);
+  }
 
 // Write code to use inquirer to gather information about the development team members,
+  const arrayOfEmployees = [];
+  const roleQuestion = [
+    {
+      type: 'list',
+      message: 'Please provide the role of the employee',
+      name: 'role',
+      choices: ['Intern', 'Engineer','Manager'],
+    }
+  ]
+
+  const baseQuestions = [
+    {
+      message: 'What is the name of the employee?',
+      name: 'name',
+    },
+    {
+      message: 'What is the employees ID #?',
+      name: 'id',
+    },
+    {
+      message: 'What is the employees email address?',
+      name: 'email',
+    },
+  ]
+  let questions = [...baseQuestions];
+
+  async function userRole() {
+    const response = await inquirer.prompt(roleQuestion)
+    questions = [...baseQuestions];
+
+    if (response.role === 'Engineer') {
+      questions.push(
+          {
+            message: 'What is the employees github username',
+            name: 'github'
+          })
+    } else if (response.role === 'Intern') {
+      questions.push(
+          {
+            message: 'Please provide the interns school name',
+            name: 'school',
+          })
+    } else if (response.role === 'Manager') {
+      questions.push(
+          {
+            message: 'What is the managers office number?',
+            name: 'officeNumber',
+          })
+    }
+    return response.role
+  }
+
+  const hereWeGoAgainQuestions = [
+    {
+      type: 'list',
+      message: 'Would you like to add another employee? Y/N',
+      name: 'again',
+      choices: ['Yes', 'No'],
+    },
+  ]
+
+  async function hereWeGoAgain() {
+    const response = await inquirer.prompt(hereWeGoAgainQuestions);
+
+    if (response.again === 'Yes') {
+      let role = await userRole();
+      await employee(role);
+      await hereWeGoAgain();
+    } else if (response.again === 'No') {
+      fs.writeFileSync(outputPath, render(arrayOfEmployees));
+    }
+
+  }
 // and to create objects for each team member (using the correct classes as blueprints!)
+  async function employee (role){
+    const response = await inquirer.prompt(questions);
+    if(role === 'Engineer') {
+      const e = new Engineer(response.name, response.id, response.email, response.github)
+      arrayOfEmployees.push(e);
+    } else if (role === 'Intern') {
+      const i = new Intern(response.name, response.id, response.email, response.school)
+      arrayOfEmployees.push(i);
+    } else if (role === 'Manager') {
+      const m = new Manager(response.name, response.id, response.email, response.officeNumber)
+      arrayOfEmployees.push(m);
+    }
+
+  }
+
+  let role = await userRole();
+  await employee(role);
+  await hereWeGoAgain();
+
+
+
 
 // After the user has input all employees desired, call the `render` function (required
 // above) and pass in an array containing all employee objects; the `render` function will
@@ -33,3 +131,4 @@ const render = require("./lib/htmlRenderer");
 // for further information. Be sure to test out each class and verify it generates an
 // object with the correct structure and methods. This structure will be crucial in order
 // for the provided `render` function to work! ```
+}());
