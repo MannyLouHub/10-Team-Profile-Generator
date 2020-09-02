@@ -11,18 +11,26 @@
 
   const render = require("./lib/htmlRenderer");
 
-  if (!fs.existsSync(OUTPUT_DIR)){
+  if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR);
   }
 
 // Write code to use inquirer to gather information about the development team members,
   const arrayOfEmployees = [];
+
+  const managerRole = [
+    {
+      message: 'What is the employee\'s office number?',
+      name:'Office Number',
+    }
+  ]
+
   const roleQuestion = [
     {
       type: 'list',
-      message: 'Please provide the role of the employee',
+      message: 'Choose one of the Following.',
       name: 'role',
-      choices: ['Intern', 'Engineer','Manager'],
+      choices: ['Intern', 'Engineer'],
     }
   ]
 
@@ -42,7 +50,16 @@
   ]
   let questions = [...baseQuestions];
 
+  async function theManager() {
+    console.log("Please Enter Manager Info");
+    const basicQuestions = await inquirer.prompt(baseQuestions)
+    const response = await inquirer.prompt (managerRole)
+    const m = new Manager(basicQuestions.name, basicQuestions.id, basicQuestions.email, response.officeNumber)
+    arrayOfEmployees.push(m);
+  }
+
   async function userRole() {
+    console.log('Please Enter Team Member info');
     const response = await inquirer.prompt(roleQuestion)
     questions = [...baseQuestions];
 
@@ -57,12 +74,6 @@
           {
             message: 'Please provide the interns school name',
             name: 'school',
-          })
-    } else if (response.role === 'Manager') {
-      questions.push(
-          {
-            message: 'What is the managers office number?',
-            name: 'officeNumber',
           })
     }
     return response.role
@@ -87,28 +98,24 @@
     } else if (response.again === 'No') {
       fs.writeFileSync(outputPath, render(arrayOfEmployees));
     }
-
   }
+
 // and to create objects for each team member (using the correct classes as blueprints!)
-  async function employee (role){
+  async function employee(role) {
     const response = await inquirer.prompt(questions);
-    if(role === 'Engineer') {
+    if (role === 'Engineer') {
       const e = new Engineer(response.name, response.id, response.email, response.github)
       arrayOfEmployees.push(e);
     } else if (role === 'Intern') {
       const i = new Intern(response.name, response.id, response.email, response.school)
       arrayOfEmployees.push(i);
-    } else if (role === 'Manager') {
-      const m = new Manager(response.name, response.id, response.email, response.officeNumber)
-      arrayOfEmployees.push(m);
     }
-
   }
 
+  await theManager();
   let role = await userRole();
   await employee(role);
   await hereWeGoAgain();
-
 
 
 
